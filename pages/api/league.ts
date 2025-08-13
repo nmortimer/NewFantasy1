@@ -28,17 +28,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ]);
       if (!rostersRes.ok || !usersRes.ok) throw new Error('Failed to fetch Sleeper league');
 
-      const rosters = await rostersRes.json();
-      const users = await usersRes.json();
-      const userById = new Map(users.map((u: any) => [u.user_id, u]));
+      const rosters: any[] = await rostersRes.json();
+      const users: any[] = await usersRes.json();
+      const userById: Map<string, any> = new Map(users.map((u: any) => [u.user_id, u]));
 
-      const teams = (rosters as any[]).map((r, i) => {
-        const ownerId = r.owner_id || r.ownerId || r.owner || '';
-        const user = ownerId ? userById.get(ownerId) : null;
+      const teams = rosters.map((r: any, i: number) => {
+        const ownerId: string = r.owner_id || r.ownerId || r.owner || '';
+        const user: any = ownerId ? (userById.get(ownerId) as any) : null; // <-- cast to any to avoid TS error
 
-        const customName = (user?.metadata?.team_name || '').trim();
-        const rosterName = (r?.settings?.team_name || '').trim();
-        const displayName = (user?.display_name || '').trim();
+        const customName = ((user?.metadata?.team_name as string) || '').trim();
+        const rosterName = ((r?.settings?.team_name as string) || '').trim();
+        const displayName = ((user?.display_name as string) || '').trim();
 
         const name = customName || rosterName || displayName || `Team ${i + 1}`;
         const owner = displayName || 'Unknown';
@@ -58,12 +58,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const base = `https://api.myfantasyleague.com/${q.season}/export`;
       const r = await fetch(`${base}?TYPE=league&L=${q.leagueId}&W=1&JSON=1`);
       if (!r.ok) throw new Error('Failed to fetch MFL league');
-      const data = await r.json();
-      const franchises = data?.league?.franchises?.franchise || [];
+      const data: any = await r.json();
+      const franchises: any[] = data?.league?.franchises?.franchise || [];
       const teams = franchises.map((t: any, i: number) => ({
         id: String(t.id ?? i),
-        name: t.name?.trim() || `Team ${i + 1}`,
-        owner: t.owner_name?.trim() || 'Unknown',
+        name: (t.name as string)?.trim() || `Team ${i + 1}`,
+        owner: (t.owner_name as string)?.trim() || 'Unknown',
       }));
       return res.status(200).json({ teams });
     }
@@ -75,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (q.swid && q.s2) headers['Cookie'] = `SWID=${q.swid}; ESPN_S2=${q.s2}`;
     const r = await fetch(url, { headers });
     if (!r.ok) throw new Error('Failed to fetch ESPN league (is it private?)');
-    const json = await r.json();
+    const json: any = await r.json();
     const teams = (json?.teams || []).map((t: any, i: number) => ({
       id: String(t.id ?? i),
       name:
