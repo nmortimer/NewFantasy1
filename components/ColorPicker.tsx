@@ -1,16 +1,46 @@
-
 import { useState, useEffect } from 'react';
-export default function ColorPicker({label,value,onChange}:{label:string; value:string; onChange:(v:string)=>void}){
-  const [v,setV]=useState(value);
-  useEffect(()=>setV(value),[value]);
-  const clean=(x:string)=> (x.startsWith('#')?x:'#'+x.replace(/[^0-9a-f]/gi,'').slice(0,6).padEnd(6,'0'));
-  function set(x:string){ const c=clean(x); setV(c); onChange(c); }
-  return <div>
-    <label style={{fontSize:12,opacity:.8}}>{label}</label>
-    <div className="row">
-      <div className="swatch" style={{background:v}}/>
-      <input type="color" value={v} onChange={e=>set(e.target.value)} style={{width:44,height:32,borderRadius:8,border:'1px solid #22303d',background:'transparent'}}/>
-      <input className="input" value={v} onChange={e=>set(e.target.value)} placeholder="#00B2CA"/>
+import { sanitizeHex } from '@/lib/utils';
+
+/** Single visible selector that also displays the value. */
+export default function ColorPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (hex: string) => void;
+}) {
+  const [hex, setHex] = useState(sanitizeHex(value));
+
+  useEffect(() => setHex(sanitizeHex(value)), [value]);
+
+  function set(v: string) {
+    const clean = sanitizeHex(v);
+    setHex(clean);
+    onChange(clean);
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label style={{ fontSize: 12, opacity: 0.8 }}>{label}</label>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <input
+          type="color"
+          aria-label={label}
+          value={hex}
+          onChange={(e) => set(e.target.value)}
+          style={{
+            width: 40,
+            height: 32,
+            borderRadius: 8,
+            border: '1px solid var(--border)',
+            background: 'transparent',
+            padding: 0,
+          }}
+        />
+        <code style={{ fontSize: 12, opacity: 0.8 }}>{hex.toUpperCase()}</code>
+      </div>
     </div>
-  </div>;
+  );
 }
