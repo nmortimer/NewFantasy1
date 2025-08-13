@@ -26,17 +26,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const secondary = hex(team.secondary);
     const seed = Number.isFinite(team.seed) ? (team.seed as number) : Math.floor(Math.random() * 1_000_000_000);
 
-    // Strong “NO TEXT” clause
+    // IMPORTANT: We do NOT send the team name here to reduce accidental text in the image.
     const prompt = [
       'clean modern vector sports logo, fantasy football team',
-      `team name: ${team.name}`,
       `mascot: ${team.mascot}`,
       `primary color ${primary}, secondary color ${secondary}`,
       'centered emblem, bold lines, crisp edges, high contrast',
       'no text, no typography, no letters, no words, no watermark, no captions'
     ].join(', ');
 
-    // Free, keyless provider
     const url =
       `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
       `?seed=${encodeURIComponent(String(seed))}` +
