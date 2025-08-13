@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
-import { sanitizeHex } from '@/lib/utils';
 
-/** Single visible selector that also displays the value. */
-export default function ColorPicker({
-  label,
-  value,
-  onChange,
-}: {
+type Props = {
   label: string;
   value: string;
   onChange: (hex: string) => void;
-}) {
+};
+
+function sanitizeHex(input: string) {
+  const x = input.trim().replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+  return `#${x.padEnd(6, '0')}`;
+}
+
+export default function ColorPicker({ label, value, onChange }: Props) {
   const [hex, setHex] = useState(sanitizeHex(value));
 
   useEffect(() => setHex(sanitizeHex(value)), [value]);
