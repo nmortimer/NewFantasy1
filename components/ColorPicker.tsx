@@ -11,6 +11,7 @@ function sanitizeHex(input: string) {
   return `#${x.padEnd(6, '0')}`;
 }
 
+/** Single, clear control: the swatch is the selector; value is shown next to it. */
 export default function ColorPicker({ label, value, onChange }: Props) {
   const [hex, setHex] = useState(sanitizeHex(value));
 
@@ -32,10 +33,10 @@ export default function ColorPicker({ label, value, onChange }: Props) {
           value={hex}
           onChange={(e) => set(e.target.value)}
           style={{
-            width: 40,
+            width: 42,
             height: 32,
             borderRadius: 8,
-            border: '1px solid var(--border)',
+            border: '1px solid #22303d',
             background: 'transparent',
             padding: 0,
           }}
