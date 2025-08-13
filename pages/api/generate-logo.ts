@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
-import { noTextClause } from '@/lib/utils';
 
 const TeamSchema = z.object({
   id: z.string().optional(),
@@ -21,23 +20,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   try {
     const { team } = BodySchema.parse(req.body);
+
     const hex = (v: string) => (v.startsWith('#') ? v : `#${v}`);
     const primary = hex(team.primary);
     const secondary = hex(team.secondary);
     const seed = Number.isFinite(team.seed) ? (team.seed as number) : Math.floor(Math.random() * 1_000_000_000);
 
+    // Strong “NO TEXT” clause
     const prompt = [
       'clean modern vector sports logo, fantasy football team',
       `team name: ${team.name}`,
       `mascot: ${team.mascot}`,
       `primary color ${primary}, secondary color ${secondary}`,
       'centered emblem, bold lines, crisp edges, high contrast',
-      noTextClause(), // <— stronger “no text”
+      'no text, no typography, no letters, no words, no watermark, no captions'
     ].join(', ');
 
+    // Free, keyless provider
     const url =
       `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-      `?seed=${encodeURIComponent(String(seed))}&width=1024&height=1024&nologo=true&enhance=true`;
+      `?seed=${encodeURIComponent(String(seed))}` +
+      `&width=1024&height=1024&nologo=true&enhance=true`;
 
     return res.status(200).json({ url });
   } catch (err: any) {
