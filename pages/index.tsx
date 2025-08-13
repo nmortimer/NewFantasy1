@@ -4,20 +4,57 @@ import TeamCard, { Team } from '../components/TeamCard';
 
 type Provider = 'sleeper' | 'mfl' | 'espn';
 
-/** Suggest a mascot from a team name (editable later). */
-function deriveMascot(teamName: string): string {
-  const animals = [
-    'Foxes','Wolves','Tigers','Bears','Hawks','Eagles','Falcons','Sharks','Dragons','Knights',
-    'Buccaneers','Runners','Raiders','Warriors','Raptors','Vikings','Titans','Gators','Bulls','Spartans'
-  ];
+/** Pick a good display name for the team for each provider result */
+function pickTeamName(provider: Provider, raw: any, idx: number, userById?: Map<string, any>): string {
+  if (provider === 'sleeper') {
+    // Sleeper: prefer the user's custom team name, then roster settings team_name, then fallback
+    const ownerId = raw.owner_id || raw.ownerId || raw.owner || '';
+    const user = ownerId && userById ? userById.get(ownerId) : null;
+    const userTeamName = user?.metadata?.team_name || user?.display_name || '';
+    const rosterTeamName = raw?.settings?.team_name || '';
+    const name = (userTeamName || rosterTeamName || '').trim();
+    return name || `Team ${idx + 1}`;
+  }
+  // MFL & ESPN already mapped to reasonable shape in the API
+  return (raw?.name || '').trim() || `Team ${idx + 1}`;
+}
+
+/** Recognized mascot words in names (plural & common singular) */
+const KNOWN_MASCOTS = [
+  'Foxes','Fox','Wolves','Wolf','Tigers','Tiger','Bears','Bear','Hawks','Hawk','Eagles','Eagle',
+  'Falcons','Falcon','Sharks','Shark','Dragons','Dragon','Knights','Knight','Buccaneers','Buccaneer',
+  'Runners','Runner','Raiders','Raider','Warriors','Warrior','Raptors','Raptor','Vikings','Viking',
+  'Titans','Titan','Gators','Gator','Bulls','Bull','Spartans','Spartan','Pirates','Pirate','Rams','Ram',
+  'Lions','Lion','Panthers','Panther','Cougars','Cougar','Broncos','Bronco','Cardinals','Cardinal',
+  'Bulldogs','Bulldog','Mustangs','Mustang','Coyotes','Coyote','Badgers','Badger','Hornets','Hornet',
+];
+
+/** Derive a mascot. If name already contains a known mascot word, use that.
+ * If the name is generic (Team N), hash the OWNER name to diversify across the league.
+ */
+function deriveMascot(teamName: string, ownerName?: string): string {
   const tokens = teamName.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-  const last = (tokens[tokens.length - 1] || '').toLowerCase();
-  const already = animals.find(a => a.toLowerCase() === last || a.toLowerCase().slice(0, -1) === last);
-  if (already) return already;
-  const candidate = [...tokens].reverse().find(t => t.length > 3) || tokens[0] || 'Knights';
+  const lower = tokens.map((t) => t.toLowerCase());
+
+  // If the name contains a known mascot, keep it (prefer plural form from list)
+  for (const m of KNOWN_MASCOTS) {
+    const mLow = m.toLowerCase();
+    if (lower.includes(mLow)) {
+      // Return the canonical plural form if available
+      const plural = KNOWN_MASCOTS.find((x) => x !== m && x.toLowerCase() === (mLow.endsWith('s') ? mLow : mLow + 's'));
+      return plural || m;
+    }
+  }
+
+  // Otherwise pick a mascot deterministically using owner name (to avoid everyone becoming the same)
+  const pool = ['Foxes','Wolves','Tigers','Bears','Hawks','Eagles','Falcons','Sharks','Dragons','Knights','Raiders','Warriors','Raptors','Vikings','Titans','Gators','Bulls','Spartans','Panthers','Pirates'];
+  const basis = (ownerName || teamName || 'Team').toLowerCase();
   let h = 2166136261;
-  for (let i = 0; i < candidate.length; i++) { h ^= candidate.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
-  return animals[(h >>> 0) % animals.length];
+  for (let i = 0; i < basis.length; i++) {
+    h ^= basis.charCodeAt(i);
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+  }
+  return pool[(h >>> 0) % pool.length];
 }
 
 function randomSeed(): number {
@@ -48,19 +85,34 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed league load');
 
-      const mapped: Team[] = data.teams.map((t: any, i: number) => {
-        const name = t.name || `Team ${i + 1}`;
+      // For Sleeper we also need the users list to pick the best name & owner display name
+      let userById: Map<string, any> | undefined = undefined;
+      if (provider === 'sleeper') {
+        const usersRes = await fetch(`https://api.sleeper.app/v1/league/${leagueId}/users`);
+        const users = await usersRes.json();
+        userById = new Map(users.map((u: any) => [u.user_id, u]));
+      }
+
+      const mapped: Team[] = data.teams.map((r: any, i: number) => {
+        const name = pickTeamName(provider, r, i, userById);
+        const ownerId = r.owner_id || r.ownerId || r.owner || '';
+        const ownerName =
+          (userById && ownerId && userById.get(ownerId)?.display_name) ||
+          r.owner ||
+          'Unknown';
+
         return {
-          id: String(t.id ?? i),
+          id: String(r.id ?? r.roster_id ?? i),
           name,
-          owner: t.owner || 'Unknown',
-          mascot: deriveMascot(name), // smarter default
+          owner: ownerName,
+          mascot: deriveMascot(name, ownerName),
           primary: '#00B2CA',
           secondary: '#1A1A1A',
           seed: randomSeed(),
           logoUrl: null,
         };
       });
+
       setTeams(mapped);
     } catch (e: any) {
       alert(e.message);
