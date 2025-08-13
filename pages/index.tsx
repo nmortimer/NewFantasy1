@@ -12,7 +12,7 @@ const KNOWN_MASCOTS = [
   'Titans','Titan','Gators','Gator','Bulls','Bull','Spartans','Spartan','Panthers','Panther','Pirates','Pirate',
 ];
 
-/** Derive mascot from team name; if name contains a known mascot, keep it. */
+/** Derive mascot from team name; if name contains a known mascot, keep it; otherwise use owner/name hash. */
 function deriveMascot(teamName: string, ownerName?: string): string {
   const tokens = teamName.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
   const lower = tokens.map((t) => t.toLowerCase());
@@ -33,6 +33,32 @@ function deriveMascot(teamName: string, ownerName?: string): string {
   return pool[(h >>> 0) % pool.length];
 }
 function randomSeed(): number { return Math.floor(Math.random() * 1_000_000_000); }
+
+/** Make a cohesive league palette (distinct hues / same sat+light) */
+function generateLeaguePalette(count: number, seedNumber: number) {
+  const colors: string[] = [];
+  const n = Math.max(3, Math.min(count, 16)); // clamp 3..16
+  const hueStep = 360 / n;
+  const hueOffset = seedNumber % 360;
+  const saturation = 68 + (seedNumber % 12);   // 68–79%
+  const lightness = 46 + ((seedNumber >> 2) % 8); // 46–53%
+  for (let i = 0; i < n; i++) {
+    const hue = (hueOffset + i * hueStep) % 360;
+    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+  }
+  return colors;
+}
+
+/** Choose a secondary color that is harmonious with the primary (darker analog). */
+function secondaryFor(primaryHsl: string): string {
+  // Expect "hsl(H, S%, L%)"
+  const m = primaryHsl.match(/hsl\((\d+),\s*([\d.]+)%?,\s*([\d.]+)%?\)/i);
+  if (!m) return '#1A1A1A';
+  const h = (parseInt(m[1], 10) + 20) % 360;
+  const s = Math.max(30, Math.min(80, parseFloat(m[2]) - 10));
+  const l = Math.max(18, Math.min(45, parseFloat(m[3]) - 15));
+  return `hsl(${h}, ${s}%, ${l}%)`;
+}
 
 export default function Home() {
   const [provider, setProvider] = useState<Provider>('sleeper');
@@ -58,16 +84,22 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed league load');
 
+      // Build palette once per league, seeded by numeric portion of leagueId (fallback: Date.now())
+      const numericSeed = Number(String(leagueId).replace(/\D/g, '')) || Date.now();
+      const palette = generateLeaguePalette((data.teams as any[]).length, numericSeed);
+
       const mapped: Team[] = (data.teams as any[]).map((t, i) => {
         const name = (t.name || `Team ${i + 1}`).trim();
         const owner = (t.owner || 'Unknown').trim();
+        const primary = palette[i % palette.length];
+        const secondary = secondaryFor(primary);
         return {
           id: String(t.id ?? i),
           name,
           owner,
           mascot: deriveMascot(name, owner),
-          primary: '#00B2CA',
-          secondary: '#1A1A1A',
+          primary,
+          secondary,
           seed: randomSeed(),
           logoUrl: null,
         };
@@ -107,22 +139,59 @@ export default function Home() {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>Fantasy Logo Studio — Free</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <select value={provider} onChange={(e) => setProvider(e.target.value as Provider)} style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }}>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value as Provider)}
+            style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }}
+          >
             <option value="sleeper">Sleeper</option>
             <option value="mfl">MFL</option>
             <option value="espn">ESPN</option>
           </select>
-          <input placeholder="League ID" value={leagueId} onChange={(e) => setLeagueId(e.target.value)} style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }} />
+          <input
+            placeholder="League ID"
+            value={leagueId}
+            onChange={(e) => setLeagueId(e.target.value)}
+            style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }}
+          />
           {provider !== 'sleeper' && (
-            <input placeholder="Season (e.g., 2025)" value={season} onChange={(e) => setSeason(e.target.value)} style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }} />
+            <input
+              placeholder="Season (e.g., 2025)"
+              value={season}
+              onChange={(e) => setSeason(e.target.value)}
+              style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }}
+            />
           )}
           {provider === 'espn' && (
             <>
-              <input placeholder="SWID (private leagues only)" value={swid} onChange={(e) => setSwid(e.target.value)} style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }} />
-              <input placeholder="ESPN_S2 (private leagues only)" value={s2} onChange={(e) => setS2(e.target.value)} style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }} />
+              <input
+                placeholder="SWID (private leagues only)"
+                value={swid}
+                onChange={(e) => setSwid(e.target.value)}
+                style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }}
+              />
+              <input
+                placeholder="ESPN_S2 (private leagues only)"
+                value={s2}
+                onChange={(e) => setS2(e.target.value)}
+                style={{ background: '#151b22', border: '1px solid #22303d', color: '#e9eef5', borderRadius: 10, padding: '10px 12px' }}
+              />
             </>
           )}
-          <button onClick={loadLeague} disabled={loading} style={{ border: '1px solid #1e7e59', background: '#2fb47d', color: '#0b1210', borderRadius: 10, padding: '10px 12px', cursor: 'pointer', fontWeight: 700, opacity: loading ? 0.7 : 1 }}>
+          <button
+            onClick={loadLeague}
+            disabled={loading}
+            style={{
+              border: '1px solid #1e7e59',
+              background: '#2fb47d',
+              color: '#0b1210',
+              borderRadius: 10,
+              padding: '10px 12px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
             {loading ? 'Loading…' : 'Load League'}
           </button>
         </div>
@@ -131,19 +200,71 @@ export default function Home() {
       {/* Mode bar */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
         <span style={{ opacity: 0.8 }}>Mode:</span>
-        <button onClick={() => setMode('commissioner')} style={{ border: '1px solid #22303d', background: mode === 'commissioner' ? '#2fb47d' : '#151b22', color: mode === 'commissioner' ? '#0b1210' : '#e9eef5', borderRadius: 10, padding: '8px 10px', cursor: 'pointer', fontWeight: mode === 'commissioner' ? 700 : 400 }}>Commissioner (bulk)</button>
-        <button onClick={() => setMode('manager')} style={{ border: '1px solid #22303d', background: mode === 'manager' ? '#2fb47d' : '#151b22', color: mode === 'manager' ? '#0b1210' : '#e9eef5', borderRadius: 10, padding: '8px 10px', cursor: 'pointer', fontWeight: mode === 'manager' ? 700 : 400 }}>Manager (focus)</button>
+        <button
+          onClick={() => setMode('commissioner')}
+          style={{
+            border: '1px solid #22303d',
+            background: mode === 'commissioner' ? '#2fb47d' : '#151b22',
+            color: mode === 'commissioner' ? '#0b1210' : '#e9eef5',
+            borderRadius: 10,
+            padding: '8px 10px',
+            cursor: 'pointer',
+            fontWeight: mode === 'commissioner' ? 700 : 400,
+          }}
+        >
+          Commissioner (bulk)
+        </button>
+        <button
+          onClick={() => setMode('manager')}
+          style={{
+            border: '1px solid #22303d',
+            background: mode === 'manager' ? '#2fb47d' : '#151b22',
+            color: mode === 'manager' ? '#0b1210' : '#e9eef5',
+            borderRadius: 10,
+            padding: '8px 10px',
+            cursor: 'pointer',
+            fontWeight: mode === 'manager' ? 700 : 400,
+          }}
+        >
+          Manager (focus)
+        </button>
         {teams.length > 0 && (
-          <button onClick={generateAll} style={{ border: '1px solid #22303d', background: '#151b22', color: '#e9eef5', borderRadius: 10, padding: '8px 10px', cursor: 'pointer', marginLeft: 8 }} title="Generate logos for all teams">
+          <button
+            onClick={generateAll}
+            style={{
+              border: '1px solid #22303d',
+              background: '#151b22',
+              color: '#e9eef5',
+              borderRadius: 10,
+              padding: '8px 10px',
+              cursor: 'pointer',
+              marginLeft: 8,
+            }}
+            title="Generate logos for all teams"
+          >
             Generate All (Free)
           </button>
         )}
       </div>
 
       {/* Grid */}
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: mode === 'manager' ? 'repeat(auto-fill, minmax(360px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+      <div
+        style={{
+          display: 'grid',
+          gap: 16,
+          gridTemplateColumns: mode === 'manager'
+            ? 'repeat(auto-fill, minmax(360px, 1fr))'
+            : 'repeat(auto-fill, minmax(300px, 1fr))',
+        }}
+      >
         {teams.map((t) => (
-          <TeamCard key={t.id} team={t} onUpdate={(p) => patch(t.id, p)} onGenerate={() => generate(t)} roomy={mode === 'manager'} />
+          <TeamCard
+            key={t.id}
+            team={t}
+            onUpdate={(p) => patch(t.id, p)}
+            onGenerate={() => generate(t)}
+            roomy={mode === 'manager'}
+          />
         ))}
       </div>
     </div>
