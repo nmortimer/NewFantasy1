@@ -5,7 +5,7 @@ const TeamSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   owner: z.string().optional(),
-  mascot: z.string(),           // we base the logo on this (not the name)
+  mascot: z.string(),           // logo is based on mascot only (not team name)
   primary: z.string(),          // hex or hsl
   secondary: z.string(),        // hex or hsl
   seed: z.number().optional(),
@@ -13,11 +13,6 @@ const TeamSchema = z.object({
 });
 const BodySchema = z.object({ team: TeamSchema });
 
-/**
- * Returns a single URL for a free, keyless generator (Pollinations) using
- * a prompt tuned for NFL‑style, professional mascot emblems.
- * We do NOT pass the team name to avoid text in the image.
- */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -29,27 +24,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const normalize = (v: string) =>
       v.startsWith('#') || v.startsWith('hsl') ? v : `#${v}`;
-    const primary = normalize(team.primary);
-    const secondary = normalize(team.secondary);
+    const primary = normalize(team.primary).toUpperCase();
+    const secondary = normalize(team.secondary).toUpperCase();
 
-    // jitter seed slightly to avoid identical/blank frames on some prompts
+    // jitter seed slightly to reduce rare blank frames
     const baseSeed =
       Number.isFinite(team.seed) ? (team.seed as number) : Math.floor(Math.random() * 1_000_000_000);
     const seed = (baseSeed ^ 0x9e3779b1) >>> 0;
 
-    // ——— Prompt tuned for pro, NFL‑style mascot head emblem ———
-    // Notes:
-    //  • Mascot HEAD focus (clean silhouette) gives more consistent results
-    //  • Strict vector language, limited color use, strong negative text ban
-    //  • Plain background to keep outputs crop‑ready
+    // —— PRO, NFL‑style mascot head emblem — with HARD color constraints ——
+    // We repeat palette constraints multiple times and assign roles (dominant/accent)
+    // to strongly bias the model toward the exact colors provided.
     const lines = [
       'professional american football team logo',
-      `mascot head emblem: ${team.mascot}`,      // no team name (prevents text)
-      `team colors: primary ${primary}, secondary ${secondary}, plus white/negative space`,
+      `mascot head emblem: ${team.mascot}`,
       'vector illustration, bold geometric shapes, thick outline, sharp silhouette',
       'clean color blocking, 2–3 colors total, high contrast, centered, symmetrical',
       'flat background, no gradient, no 3d, no photo, no clutter',
-      // Very strong “no text” clause — repeat in different phrasings
+      // COLOR CONTROL (repeat in different phrasings)
+      `color palette ONLY: ${primary}, ${secondary}, white`,
+      `dominant color: ${primary}; accent color: ${secondary}`,
+      `use strictly these colors: ${primary}, ${secondary}, white (no other hues)`,
+      'limit colors to the palette; match hex codes exactly; no extra tints or shades',
+      // Strong “no text”
       'no text, no typography, no letters, no words, no numbers, no jersey numbers',
       'no watermark, no signature, no captions, no banners, no ribbons, no wordmarks',
     ];
