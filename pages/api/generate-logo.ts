@@ -5,14 +5,19 @@ const TeamSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   owner: z.string().optional(),
-  mascot: z.string(),           // we will base the logo on this (not the name)
-  primary: z.string(),          // hex or hsl string
-  secondary: z.string(),        // hex or hsl string
+  mascot: z.string(),           // we base the logo on this (not the name)
+  primary: z.string(),          // hex or hsl
+  secondary: z.string(),        // hex or hsl
   seed: z.number().optional(),
   logoUrl: z.string().nullable().optional(),
 });
 const BodySchema = z.object({ team: TeamSchema });
 
+/**
+ * Returns a single URL for a free, keyless generator (Pollinations) using
+ * a prompt tuned for NFL‑style, professional mascot emblems.
+ * We do NOT pass the team name to avoid text in the image.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -22,25 +27,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { team } = BodySchema.parse(req.body);
 
-    const hex = (v: string) => (v.startsWith('#') || v.startsWith('hsl') ? v : `#${v}`);
-    const primary = hex(team.primary);
-    const secondary = hex(team.secondary);
-    const seed =
+    const normalize = (v: string) =>
+      v.startsWith('#') || v.startsWith('hsl') ? v : `#${v}`;
+    const primary = normalize(team.primary);
+    const secondary = normalize(team.secondary);
+
+    // jitter seed slightly to avoid identical/blank frames on some prompts
+    const baseSeed =
       Number.isFinite(team.seed) ? (team.seed as number) : Math.floor(Math.random() * 1_000_000_000);
+    const seed = (baseSeed ^ 0x9e3779b1) >>> 0;
 
-    // STRONG, TEXT‑FREE PROMPT (no team name passed)
-    const prompt = [
-      'professional American football team logo, modern sports branding',
-      `mascot focus: ${team.mascot}`,
-      `team colors: primary ${primary}, secondary ${secondary}`,
-      'vector illustration, clean color blocking, bold geometric shapes, thick outline,',
-      'high contrast, centered emblem, dynamic but minimal, no gradients,',
-      'crisp edges, flat background',
-      // very strong negative prompt
-      'no text, no typography, no letters, no words, no watermark, no captions, no jersey numbers, no signatures',
-    ].join(', ');
+    // ——— Prompt tuned for pro, NFL‑style mascot head emblem ———
+    // Notes:
+    //  • Mascot HEAD focus (clean silhouette) gives more consistent results
+    //  • Strict vector language, limited color use, strong negative text ban
+    //  • Plain background to keep outputs crop‑ready
+    const lines = [
+      'professional american football team logo',
+      `mascot head emblem: ${team.mascot}`,      // no team name (prevents text)
+      `team colors: primary ${primary}, secondary ${secondary}, plus white/negative space`,
+      'vector illustration, bold geometric shapes, thick outline, sharp silhouette',
+      'clean color blocking, 2–3 colors total, high contrast, centered, symmetrical',
+      'flat background, no gradient, no 3d, no photo, no clutter',
+      // Very strong “no text” clause — repeat in different phrasings
+      'no text, no typography, no letters, no words, no numbers, no jersey numbers',
+      'no watermark, no signature, no captions, no banners, no ribbons, no wordmarks',
+    ];
 
-    // Free, keyless provider
+    const prompt = lines.join(', ');
+
     const url =
       `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
       `?seed=${encodeURIComponent(String(seed))}` +
