@@ -19,11 +19,16 @@ function deriveMascot(teamName: string, ownerName?: string): string {
   for (const m of KNOWN_MASCOTS) {
     const mLow = m.toLowerCase();
     if (lower.includes(mLow)) {
-      const plural = KNOWN_MASCOTS.find((x) => x !== m && x.toLowerCase() === (mLow.endsWith('s') ? mLow : mLow + 's'));
+      const plural = KNOWN_MASCOTS.find(
+        (x) => x !== m && x.toLowerCase() === (mLow.endsWith('s') ? mLow : mLow + 's')
+      );
       return plural || m;
     }
   }
-  const pool = ['Foxes','Wolves','Tigers','Bears','Hawks','Eagles','Falcons','Sharks','Dragons','Knights','Raiders','Warriors','Raptors','Vikings','Titans','Gators','Bulls','Spartans','Panthers','Pirates'];
+  const pool = [
+    'Foxes','Wolves','Tigers','Bears','Hawks','Eagles','Falcons','Sharks','Dragons','Knights',
+    'Raiders','Warriors','Raptors','Vikings','Titans','Gators','Bulls','Spartans','Panthers','Pirates'
+  ];
   const basis = (ownerName || teamName || 'Team').toLowerCase();
   let h = 2166136261;
   for (let i = 0; i < basis.length; i++) {
@@ -34,30 +39,44 @@ function deriveMascot(teamName: string, ownerName?: string): string {
 }
 function randomSeed(): number { return Math.floor(Math.random() * 1_000_000_000); }
 
-/** Make a cohesive league palette (distinct hues / same sat+light) */
-function generateLeaguePalette(count: number, seedNumber: number) {
-  const colors: string[] = [];
-  const n = Math.max(3, Math.min(count, 16)); // clamp 3..16
-  const hueStep = 360 / n;
-  const hueOffset = seedNumber % 360;
-  const saturation = 68 + (seedNumber % 12);   // 68–79%
-  const lightness = 46 + ((seedNumber >> 2) % 8); // 46–53%
-  for (let i = 0; i < n; i++) {
-    const hue = (hueOffset + i * hueStep) % 360;
-    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
-  }
-  return colors;
-}
+/** NFL‑style color pairs (primary/secondary). Not copying teams; just inspired by the league. */
+const NFL_PALETTE: Array<{primary: string; secondary: string; name: string}> = [
+  { name: 'Navy / Silver',        primary: '#002244', secondary: '#A5ACAF' },
+  { name: 'Green / Gold',         primary: '#203731', secondary: '#FFB612' },
+  { name: 'Aqua / Orange',        primary: '#008E97', secondary: '#F36F21' },
+  { name: 'Black / Gold',         primary: '#101820', secondary: '#D3BC8D' },
+  { name: 'Royal / Red',          primary: '#003594', secondary: '#C8102E' },
+  { name: 'Purple / Gold',        primary: '#4F2683', secondary: '#FFC62F' },
+  { name: 'Red / Gold',           primary: '#AA0000', secondary: '#B3995D' },
+  { name: 'Teal / Black',         primary: '#006778', secondary: '#101820' },
+  { name: 'Blue / Orange',        primary: '#0B2265', secondary: '#FF3C00' },
+  { name: 'Cardinal / Black',     primary: '#97233F', secondary: '#000000' },
+  { name: 'Honolulu Blue / Silver',primary: '#0076B6', secondary: '#B0B7BC' },
+  { name: 'Navy / Orange',        primary: '#0B162A', secondary: '#C83803' },
+  { name: 'Scarlet / Gray',       primary: '#D50A0A', secondary: '#5A615E' },
+  { name: 'Blue / Yellow',        primary: '#0038A8', secondary: '#FFD100' },
+  { name: 'Purple / Black',       primary: '#2A0845', secondary: '#111111' },
+  { name: 'Forest / Cream',       primary: '#0B4F3D', secondary: '#E1C699' },
+  { name: 'Navy / Kelly',         primary: '#001F3F', secondary: '#2ECC71' },
+  { name: 'Red / Black',          primary: '#B11226', secondary: '#101820' },
+  { name: 'Steel / Yellow',       primary: '#1C1C1C', secondary: '#FFB612' },
+  { name: 'Royal / Silver',       primary: '#1D428A', secondary: '#A2AAAD' },
+  { name: 'Teal / Gold',          primary: '#007F7F', secondary: '#C8A951' },
+  { name: 'Navy / Lime',          primary: '#002244', secondary: '#69BE28' },
+  { name: 'Red / Navy',           primary: '#A71930', secondary: '#0B2265' },
+  { name: 'Midnight / Green',     primary: '#004C54', secondary: '#000000' },
+];
 
-/** Choose a secondary color that is harmonious with the primary (darker analog). */
-function secondaryFor(primaryHsl: string): string {
-  // Expect "hsl(H, S%, L%)"
-  const m = primaryHsl.match(/hsl\((\d+),\s*([\d.]+)%?,\s*([\d.]+)%?\)/i);
-  if (!m) return '#1A1A1A';
-  const h = (parseInt(m[1], 10) + 20) % 360;
-  const s = Math.max(30, Math.min(80, parseFloat(m[2]) - 10));
-  const l = Math.max(18, Math.min(45, parseFloat(m[3]) - 15));
-  return `hsl(${h}, ${s}%, ${l}%)`;
+/** Deterministic shuffle so each league gets a consistent palette rotation */
+function shuffleDeterministic<T>(arr: T[], seed: number): T[] {
+  const out = arr.slice();
+  let s = seed || 1;
+  for (let i = out.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) >>> 0;  // LCG
+    const j = s % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
 export default function Home() {
@@ -84,22 +103,21 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed league load');
 
-      // Build palette once per league, seeded by numeric portion of leagueId (fallback: Date.now())
+      // Build palette once per league, seeded by numeric portion of leagueId
       const numericSeed = Number(String(leagueId).replace(/\D/g, '')) || Date.now();
-      const palette = generateLeaguePalette((data.teams as any[]).length, numericSeed);
+      const rotated = shuffleDeterministic(NFL_PALETTE, numericSeed);
 
       const mapped: Team[] = (data.teams as any[]).map((t, i) => {
         const name = (t.name || `Team ${i + 1}`).trim();
         const owner = (t.owner || 'Unknown').trim();
-        const primary = palette[i % palette.length];
-        const secondary = secondaryFor(primary);
+        const pair = rotated[i % rotated.length];
         return {
           id: String(t.id ?? i),
           name,
           owner,
           mascot: deriveMascot(name, owner),
-          primary,
-          secondary,
+          primary: pair.primary,
+          secondary: pair.secondary,
           seed: randomSeed(),
           logoUrl: null,
         };
