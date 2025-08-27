@@ -24,7 +24,7 @@ body {
   font-family: ui-sans-serif, system-ui, Segoe UI, Inter, Roboto, Arial;
 }
 
-/* UI primitives (plain CSS) */
+/* UI primitives (plain CSS; Tailwind utilities can still be used in JSX) */
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 12px;font-size:.875rem;font-weight:500;border-radius:12px;background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow-soft);transition:border-color .15s ease,filter .15s ease,transform .06s ease}
 .btn:hover{border-color:#3a5061}
 .btn:active{transform:translateY(1px)}
