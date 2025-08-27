@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from "react";
-import TeamCard, { Team } from "@/components/TeamCard";
+import TeamCard, { Team } from "../components/TeamCard"; // ← use relative path
 
 type Provider = "sleeper" | "mfl" | "espn";
 
@@ -22,6 +22,7 @@ function deriveMascot(name: string, owner?: string) {
   let h = 2166136261; for (let i = 0; i < basis.length; i++) { h ^= basis.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
   return pool[(h >>> 0) % pool.length];
 }
+
 const NFL_PALETTE = [
   { primary: "#002244", secondary: "#A5ACAF" },
   { primary: "#203731", secondary: "#FFB612" },
@@ -44,6 +45,7 @@ const NFL_PALETTE = [
   { primary: "#1C1C1C", secondary: "#FFB612" },
   { primary: "#1D428A", secondary: "#A2AAAD" }
 ];
+
 function shuffle<T>(arr: T[], seed: number) {
   const out = arr.slice(); let s = seed || 1;
   for (let i = out.length - 1; i > 0; i--) { s = (s * 1664525 + 1013904223) >>> 0; const j = s % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
@@ -66,14 +68,23 @@ export default function Home() {
 
   function applyPalette(bump = 0) {
     const pal = shuffle(NFL_PALETTE, remixSeed + bump);
-    setTeams((prev) => prev.map((t, i) => ({ ...t, primary: pal[i % pal.length].primary, secondary: pal[i % pal.length].secondary })));
+    setTeams((prev) => prev.map((t, i) => ({
+      ...t,
+      primary: pal[i % pal.length].primary,
+      secondary: pal[i % pal.length].secondary
+    })));
   }
 
   async function loadLeague() {
     if (!leagueId) return;
     try {
       setLoading(true);
-      const qs = new URLSearchParams({ provider, leagueId, ...(provider !== "sleeper" ? { season } : {}), ...(provider === "espn" ? { swid, s2 } : {}) });
+      const qs = new URLSearchParams({
+        provider,
+        leagueId,
+        ...(provider !== "sleeper" ? { season } : {}),
+        ...(provider === "espn" ? { swid, s2 } : {})
+      });
       const res = await fetch(`/api/league?${qs.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed league load");
@@ -83,7 +94,16 @@ export default function Home() {
         const name = (t.name || `Team ${i + 1}`).trim();
         const owner = (t.owner || "Unknown").trim();
         const colors = pal[i % pal.length];
-        return { id: String(t.id ?? i), name, owner, mascot: deriveMascot(name, owner), primary: colors.primary, secondary: colors.secondary, seed: rseed(), logoUrl: null };
+        return {
+          id: String(t.id ?? i),
+          name,
+          owner,
+          mascot: deriveMascot(name, owner),
+          primary: colors.primary,
+          secondary: colors.secondary,
+          seed: rseed(),
+          logoUrl: null
+        };
       });
       setTeams(mapped);
     } catch (e: any) {
@@ -94,7 +114,11 @@ export default function Home() {
   }
 
   async function generate(team: Team) {
-    const res = await fetch("/api/generate-logo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ team }) });
+    const res = await fetch("/api/generate-logo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ team })
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "gen failed");
     setTeams((prev) => prev.map((x) => (x.id === team.id ? { ...x, logoUrl: data.url } : x)));
