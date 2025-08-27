@@ -11,10 +11,8 @@ function sanitizeHex(input: string) {
   return `#${x.padEnd(6, '0')}`;
 }
 
-/** Single, clear control: swatch is the selector; value is shown next to it. */
 export default function ColorPicker({ label, value, onChange }: Props) {
   const [hex, setHex] = useState(sanitizeHex(value));
-
   useEffect(() => setHex(sanitizeHex(value)), [value]);
 
   function set(v: string) {
@@ -33,12 +31,8 @@ export default function ColorPicker({ label, value, onChange }: Props) {
           value={hex}
           onChange={(e) => set(e.target.value)}
           style={{
-            width: 42,
-            height: 32,
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            background: 'transparent',
-            padding: 0,
+            width: 42, height: 32, borderRadius: 8,
+            border: '1px solid var(--border)', background: 'transparent', padding: 0,
           }}
         />
         <code className="badge">{hex.toUpperCase()}</code>
