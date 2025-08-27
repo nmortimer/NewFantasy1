@@ -17,7 +17,7 @@ export default function Modal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <strong>{title || 'Preview'}</strong>
-          <button className="btn" onClick={onClose}>Close</button>
+          <button className="btn small" onClick={onClose}>Close</button>
         </div>
         <div className="modal-body">{children}</div>
       </div>
