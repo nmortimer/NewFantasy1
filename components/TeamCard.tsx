@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import Modal from './Modal';
-import ColorPicker from './ColorPicker';
+import { useState } from "react";
+import Modal from "./Modal";
+import ColorPicker from "./ColorPicker";
 
 export type Team = {
   id: string;
@@ -17,7 +17,7 @@ export default function TeamCard({
   team,
   onUpdate,
   onGenerate,
-  roomy = true,
+  roomy = true
 }: {
   team: Team;
   onUpdate: (patch: Partial<Team>) => void;
@@ -33,59 +33,51 @@ export default function TeamCard({
   }
 
   function copyUrl() {
-    if (!team.logoUrl) return;
-    navigator.clipboard?.writeText(team.logoUrl).catch(()=>{});
+    if (team.logoUrl) navigator.clipboard?.writeText(team.logoUrl).catch(() => {});
   }
 
   return (
-    <div className="card">
-      {/* Header */}
-      <div className="card-head">
-        <div style={{ minWidth: 0 }}>
-          <div className="card-title">{team.name}</div>
-          <div className="card-sub">Owner: {team.owner || 'Unknown'}</div>
+    <section className="card overflow-hidden">
+      {/* header */}
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-bold">{team.name}</h3>
+          <p className="truncate text-xs text-muted">Owner: {team.owner || "Unknown"}</p>
         </div>
-        <div className="row">
-          <button className="btn small" onClick={() => onUpdate({ seed: Math.floor(Math.random() * 1_000_000_000) })}>New Seed</button>
-          <button className="btn small" onClick={() => team.logoUrl && setOpen(true)} disabled={!team.logoUrl}>Open</button>
-          <a className="btn small" href={team.logoUrl || '#'} download={team.name.replace(/\s+/g,'_') + '_logo.png'} onClick={(e)=>!team.logoUrl && e.preventDefault()}>
-            Download
-          </a>
-          <button className="btn small" onClick={copyUrl} disabled={!team.logoUrl}>Copy URL</button>
-          <button className="btn small primary" onClick={doGenerate} disabled={busy}>
-            {busy ? 'Generating…' : 'Generate'}
-          </button>
+        <div className="flex items-center gap-2">
+          <button className="btn text-xs" onClick={() => onUpdate({ seed: Math.floor(Math.random() * 1_000_000_000) })}>New Seed</button>
+          <button className="btn" onClick={doGenerate} disabled={busy}>{busy ? "Generating…" : "Generate"}</button>
         </div>
-      </div>
+      </header>
 
-      {/* Body */}
-      <div className="card-body" style={{ gridTemplateColumns: roomy ? '1.6fr 1fr' : '1.3fr 1fr' }}>
-        {/* Preview */}
+      {/* body */}
+      <div className={`grid gap-4 p-4 ${roomy ? "md:grid-cols-[1.6fr_1fr]" : "md:grid-cols-[1.3fr_1fr]"}`}>
+        {/* preview */}
         <div
-          className="preview"
+          className={`relative grid place-items-center rounded-2xl border border-dashed border-border bg-[#111820] ${roomy ? "min-h-[340px]" : "min-h-[300px]"} cursor-${team.logoUrl ? "zoom-in" : "default"}`}
           onClick={() => team.logoUrl && setOpen(true)}
-          title={team.logoUrl ? 'Open full-size' : 'Click Generate'}
-          style={{ minHeight: roomy ? 340 : 300, cursor: team.logoUrl ? 'zoom-in' : 'default' }}
+          title={team.logoUrl ? "Open full-size" : "Click Generate"}
         >
-          <div className="stripe" />
           {team.logoUrl ? (
-            <img src={team.logoUrl} alt={`${team.name} logo`} />
+            <img src={team.logoUrl} alt={`${team.name} logo`} className="max-h-full max-w-full object-contain" />
           ) : (
-            <div className="helper">No logo yet. Click Generate.</div>
+            <p className="text-muted">No logo yet. Click Generate.</p>
           )}
-          <div className="colorbar">
-            <div className="sw" style={{ background: team.primary }} />
-            <div className="sw" style={{ background: team.secondary }} />
-            <div className="sw" style={{ background: '#FFFFFF', borderColor: 'rgba(0,0,0,.2)' }} />
+
+          {/* color pills */}
+          <div className="absolute bottom-3 left-3 flex gap-1.5">
+            <span className="h-4 w-4 rounded border border-white/20" style={{ background: team.primary }} />
+            <span className="h-4 w-4 rounded border border-white/20" style={{ background: team.secondary }} />
+            <span className="h-4 w-4 rounded border border-white/20 bg-white" />
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="controls">
+        {/* controls */}
+        <div className="space-y-3">
           <div>
-            <label className="small">Mascot (auto from team name; editable)</label>
+            <label className="mb-1 block text-xs text-muted">Mascot (auto from team name; editable)</label>
             <input
-              className="input"
+              className="input w-full"
               value={team.mascot}
               onChange={(e) => onUpdate({ mascot: e.target.value })}
               placeholder="e.g., Wolves, Knights, Sharks"
@@ -95,30 +87,36 @@ export default function TeamCard({
           <ColorPicker label="Primary Color" value={team.primary} onChange={(hex) => onUpdate({ primary: hex })} />
           <ColorPicker label="Secondary Color" value={team.secondary} onChange={(hex) => onUpdate({ secondary: hex })} />
 
-          <div className="row">
-            <label className="small" style={{ minWidth: 40 }}>Seed</label>
+          <div className="flex items-center gap-2">
+            <label className="w-12 text-xs text-muted">Seed</label>
             <input
-              className="input"
+              className="input w-40"
               type="number"
               value={team.seed}
-              onChange={(e) => onUpdate({ seed: parseInt(e.target.value || '0', 10) })}
-              style={{ maxWidth: 160 }}
+              onChange={(e) => onUpdate({ seed: parseInt(e.target.value || "0", 10) })}
             />
           </div>
 
-          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 4 }}>
-            <button className="btn small" onClick={() => team.logoUrl && setOpen(true)} disabled={!team.logoUrl}>Open</button>
-            <button className="btn small primary" onClick={doGenerate} disabled={busy}>
-              {busy ? 'Generating…' : 'Generate'}
-            </button>
+          <div className="mt-2 flex justify-end gap-2">
+            <button className="btn" onClick={() => team.logoUrl && setOpen(true)} disabled={!team.logoUrl}>Open</button>
+            <a
+              className={`btn ${team.logoUrl ? "" : "pointer-events-none opacity-60"}`}
+              href={team.logoUrl || "#"}
+              download={team.name.replace(/\s+/g, "_") + "_logo.png"}
+            >
+              Download
+            </a>
+            <button className="btn" onClick={copyUrl} disabled={!team.logoUrl}>Copy URL</button>
           </div>
         </div>
       </div>
 
-      {/* Modal */}
+      {/* modal */}
       <Modal open={open} onClose={() => setOpen(false)} title={team.name}>
-        {team.logoUrl && <img src={team.logoUrl} alt={`${team.name} full`} style={{ maxWidth: '100%' }} />}
+        {team.logoUrl && (
+          <img src={team.logoUrl} alt={`${team.name} full`} className="mx-auto max-h-[75vh] w-auto max-w-full" />
+        )}
       </Modal>
-    </div>
+    </section>
   );
 }
