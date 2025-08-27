@@ -11,7 +11,7 @@ function sanitizeHex(input: string) {
   return `#${x.padEnd(6, '0')}`;
 }
 
-/** Single, clear control: the swatch is the selector; value is shown next to it. */
+/** Single, clear control: swatch is the selector; value is shown next to it. */
 export default function ColorPicker({ label, value, onChange }: Props) {
   const [hex, setHex] = useState(sanitizeHex(value));
 
@@ -25,8 +25,8 @@ export default function ColorPicker({ label, value, onChange }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontSize: 12, opacity: 0.8 }}>{label}</label>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <label className="small">{label}</label>
+      <div className="row">
         <input
           type="color"
           aria-label={label}
@@ -36,12 +36,12 @@ export default function ColorPicker({ label, value, onChange }: Props) {
             width: 42,
             height: 32,
             borderRadius: 8,
-            border: '1px solid #22303d',
+            border: '1px solid var(--border)',
             background: 'transparent',
             padding: 0,
           }}
         />
-        <code style={{ fontSize: 12, opacity: 0.8 }}>{hex.toUpperCase()}</code>
+        <code className="badge">{hex.toUpperCase()}</code>
       </div>
     </div>
   );
