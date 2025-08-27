@@ -4,15 +4,27 @@
 
 :root { color-scheme: dark; }
 html, body, #__next { height: 100%; }
-body { @apply bg-[#0b0d10] text-[#e9eef5] antialiased; }
+body { @apply bg-bg text-text antialiased; }
 
-/* Reusable utilities used across the app */
-.btn { @apply inline-flex items-center justify-center rounded-xl border border-[#22303d] bg-[#151b22] px-4 py-2 text-sm font-medium shadow-[0_10px_30px_rgba(0,0,0,.35)] transition hover:border-slate-600; }
-.btn-primary { @apply bg-[#2fb47d] text-black border-[#1e7e59] font-semibold hover:brightness-110; }
+/* Buttons */
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl border border-border
+         bg-panel px-4 py-2 text-sm font-medium shadow-soft transition;
+}
+.btn:hover { @apply border-slate-600; }
+.btn-primary { @apply bg-accent text-black border-accent2 font-semibold; }
+.btn-primary:hover { @apply brightness-110; }
 .btn-ghost { @apply bg-transparent; }
-.input, .select { @apply rounded-xl border border-[#22303d] bg-[#151b22] px-3 py-2 text-sm outline-none focus:border-slate-500; }
-.badge { @apply rounded-lg border border-[#22303d] bg-[#151b22] px-2 py-1 text-xs text-[#9fb0c3]; }
-.card { @apply rounded-2xl border border-[#22303d] bg-[#0f141a] shadow-[0_10px_30px_rgba(0,0,0,.35)]; }
-.text-muted { @apply text-[#9fb0c3]; }
-.border-border { border-color: #22303d; }
-.bg-bg { background-color: #0b0d10; }
+
+/* Inputs */
+.input, .select {
+  @apply rounded-xl border border-border bg-panel px-3 py-2 text-sm outline-none;
+}
+.input:focus, .select:focus { @apply border-slate-500; }
+
+/* Badges & Cards */
+.badge { @apply rounded-lg border border-border bg-panel px-2 py-1 text-xs text-muted; }
+.card { @apply rounded-2xl border border-border bg-card shadow-soft; }
+
+/* Text / Utilities */
+.text-muted { @apply text-muted; }
