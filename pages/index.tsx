@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from "react";
-import TeamCard, { Team } from "../components/TeamCard"; // ← use relative path
+import TeamCard, { Team } from "../components/TeamCard";
 
 type Provider = "sleeper" | "mfl" | "espn";
 
@@ -19,7 +19,11 @@ function deriveMascot(name: string, owner?: string) {
   }
   const pool = ["Foxes","Wolves","Tigers","Bears","Hawks","Eagles","Falcons","Sharks","Dragons","Knights","Raiders","Warriors","Raptors","Vikings","Titans","Gators","Bulls","Spartans","Panthers","Pirates"];
   const basis = (owner || name || "Team").toLowerCase();
-  let h = 2166136261; for (let i = 0; i < basis.length; i++) { h ^= basis.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
+  let h = 2166136261;
+  for (let i = 0; i < basis.length; i++) {
+    h ^= basis.charCodeAt(i);
+    h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24);
+  }
   return pool[(h >>> 0) % pool.length];
 }
 
@@ -47,10 +51,16 @@ const NFL_PALETTE = [
 ];
 
 function shuffle<T>(arr: T[], seed: number) {
-  const out = arr.slice(); let s = seed || 1;
-  for (let i = out.length - 1; i > 0; i--) { s = (s * 1664525 + 1013904223) >>> 0; const j = s % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+  const out = arr.slice();
+  let s = seed || 1;
+  for (let i = out.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
   return out;
 }
+
 const rseed = () => Math.floor(Math.random() * 1_000_000_000);
 
 export default function Home() {
@@ -64,15 +74,20 @@ export default function Home() {
   const [teams, setTeams] = useState<Team[]>([]);
   const hasTeams = teams.length > 0;
 
-  const remixSeed = useMemo(() => Number(String(leagueId).replace(/\D/g, "")) || 2025, [leagueId]);
+  const remixSeed = useMemo(
+    () => Number(String(leagueId).replace(/\D/g, "")) || 2025,
+    [leagueId]
+  );
 
   function applyPalette(bump = 0) {
     const pal = shuffle(NFL_PALETTE, remixSeed + bump);
-    setTeams((prev) => prev.map((t, i) => ({
-      ...t,
-      primary: pal[i % pal.length].primary,
-      secondary: pal[i % pal.length].secondary
-    })));
+    setTeams((prev) =>
+      prev.map((t, i) => ({
+        ...t,
+        primary: pal[i % pal.length].primary,
+        secondary: pal[i % pal.length].secondary
+      }))
+    );
   }
 
   async function loadLeague() {
@@ -121,12 +136,25 @@ export default function Home() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "gen failed");
-    setTeams((prev) => prev.map((x) => (x.id === team.id ? { ...x, logoUrl: data.url } : x)));
+    setTeams((prev) =>
+      prev.map((x) => (x.id === team.id ? { ...x, logoUrl: data.url } : x))
+    );
   }
-  async function generateAll() { for (const t of teams) { try { await generate(t); } catch {} } }
+
+  async function generateAll() {
+    for (const t of teams) {
+      try {
+        await generate(t);
+      } catch {}
+    }
+  }
 
   const [remixCount, setRemixCount] = useState(0);
-  function remix() { const n = remixCount + 1; setRemixCount(n); applyPalette(n); }
+  function remix() {
+    const n = remixCount + 1;
+    setRemixCount(n);
+    applyPalette(n);
+  }
 
   return (
     <>
@@ -136,23 +164,61 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-accent to-accent2 shadow-soft" />
             <div>
-              <div className="text-base font-extrabold leading-tight">Fantasy Logo Studio</div>
-              <div className="text-[11px] text-muted -mt-0.5">AI-powered league logos (free)</div>
+              <div className="text-base font-extrabold leading-tight">
+                Fantasy Logo Studio
+              </div>
+              <div className="text-[11px] text-muted -mt-0.5">
+                AI-powered league logos (free)
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <select className="select" value={provider} onChange={(e) => setProvider(e.target.value as Provider)}>
-              <option value="sleeper">Sleeper</option><option value="mfl">MFL</option><option value="espn">ESPN</option>
+            <select
+              className="select"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as Provider)}
+            >
+              <option value="sleeper">Sleeper</option>
+              <option value="mfl">MFL</option>
+              <option value="espn">ESPN</option>
             </select>
-            <input className="input w-40 md:w-56" placeholder="League ID" value={leagueId} onChange={(e) => setLeagueId(e.target.value)} />
-            {provider !== "sleeper" && <input className="input w-24" placeholder="Season" value={season} onChange={(e) => setSeason(e.target.value)} />}
+            <input
+              className="input w-40 md:w-56"
+              placeholder="League ID"
+              value={leagueId}
+              onChange={(e) => setLeagueId(e.target.value)}
+            />
+            {provider !== "sleeper" && (
+              <input
+                className="input w-24"
+                placeholder="Season"
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+              />
+            )}
             {provider === "espn" && (
               <>
-                <input className="input w-36" placeholder="SWID (private)" value={swid} onChange={(e) => setSwid(e.target.value)} />
-                <input className="input w-36" placeholder="ESPN_S2 (private)" value={s2} onChange={(e) => setS2(e.target.value)} />
+                <input
+                  className="input w-36"
+                  placeholder="SWID (private)"
+                  value={swid}
+                  onChange={(e) => setSwid(e.target.value)}
+                />
+                <input
+                  className="input w-36"
+                  placeholder="ESPN_S2 (private)"
+                  value={s2}
+                  onChange={(e) => setS2(e.target.value)}
+                />
               </>
             )}
-            <button className="btn btn-primary" onClick={loadLeague} disabled={loading}>{loading ? "Loading…" : "Load League"}</button>
+            <button
+              className="btn btn-primary"
+              onClick={loadLeague}
+              disabled={loading}
+            >
+              {loading ? "Loading…" : "Load League"}
+            </button>
           </div>
         </div>
       </div>
@@ -164,32 +230,75 @@ export default function Home() {
           <aside className="card h-fit p-4">
             <div className="space-y-3">
               <div>
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">League</div>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  League
+                </div>
                 <div className="flex gap-2">
-                  <button className={`btn ${mode === "commissioner" ? "btn-primary" : ""}`} onClick={() => setMode("commissioner")}>Commissioner</button>
-                  <button className={`btn ${mode === "manager" ? "btn-primary" : ""}`} onClick={() => setMode("manager")}>Manager</button>
+                  <button
+                    className={`btn ${
+                      mode === "commissioner" ? "btn-primary" : ""
+                    }`}
+                    onClick={() => setMode("commissioner")}
+                  >
+                    Commissioner
+                  </button>
+                  <button
+                    className={`btn ${
+                      mode === "manager" ? "btn-primary" : ""
+                    }`}
+                    onClick={() => setMode("manager")}
+                  >
+                    Manager
+                  </button>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <button className="btn" onClick={generateAll} disabled={!hasTeams}>Generate All</button>
-                <button className="btn" onClick={() => setTeams([])} disabled={!hasTeams}>Clear</button>
+                <button
+                  className="btn"
+                  onClick={generateAll}
+                  disabled={!hasTeams}
+                >
+                  Generate All
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => setTeams([])}
+                  disabled={!hasTeams}
+                >
+                  Clear
+                </button>
               </div>
 
               <hr className="border-border" />
 
               <div>
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Colors</div>
-                <div className="flex gap-2">
-                  <button className="btn" onClick={() => applyPalette(0)} disabled={!hasTeams}>Apply NFL Palette</button>
-                  <button className="btn" onClick={remix} disabled={!hasTeams}>Remix Palette</button>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  Colors
                 </div>
-                <p className="mt-1 text-xs text-muted">Sets distinct, NFL-style colors across all teams. Users can still edit per team.</p>
+                <div className="flex gap-2">
+                  <button
+                    className="btn"
+                    onClick={() => applyPalette(0)}
+                    disabled={!hasTeams}
+                  >
+                    Apply NFL Palette
+                  </button>
+                  <button className="btn" onClick={remix} disabled={!hasTeams}>
+                    Remix Palette
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-muted">
+                  Sets distinct, NFL-style colors across all teams. Users can
+                  still edit per team.
+                </p>
               </div>
 
               <hr className="border-border" />
 
-              <div className="text-xs text-muted">Teams: <b className="text-text">{teams.length || 0}</b></div>
+              <div className="text-xs text-muted">
+                Teams: <b className="text-text">{teams.length || 0}</b>
+              </div>
             </div>
           </aside>
 
@@ -197,7 +306,9 @@ export default function Home() {
           <main>
             {!hasTeams ? (
               <div className="card grid place-items-center p-8 text-center text-sm text-muted">
-                Load your league above, then click <b>Generate</b> on a team or <b>Generate All</b>. Logos are free—no keys. Click a logo to view or download.
+                Load your league above, then click <b>Generate</b> on a team or{" "}
+                <b>Generate All</b>. Logos are free—no keys. Click a logo to
+                view or download.
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -205,7 +316,13 @@ export default function Home() {
                   <TeamCard
                     key={t.id}
                     team={t}
-                    onUpdate={(p) => setTeams((prev) => prev.map((x) => (x.id === t.id ? { ...x, ...p } : x)))}
+                    onUpdate={(p) =>
+                      setTeams((prev) =>
+                        prev.map((x) =>
+                          x.id === t.id ? { ...x, ...p } : x
+                        )
+                      )
+                    }
                     onGenerate={() => generate(t)}
                     roomy={mode === "manager"}
                   />
