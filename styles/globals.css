@@ -4,38 +4,19 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0b0d10;
-  --card: #0f141a;
-  --panel: #151b22;
-  --border: #22303d;
-  --text: #e9eef5;
-  --muted: #9fb0c3;
-  --accent: #2fb47d;
-  --accent2: #1e7e59;
+  --bg: #0b0d10; --card: #0f141a; --panel: #151b22; --border: #22303d;
+  --text: #e9eef5; --muted: #9fb0c3; --accent: #2fb47d; --accent2: #1e7e59;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35);
 }
 html, body, #__next { height: 100%; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-family: ui-sans-serif, system-ui, Segoe UI, Inter, Roboto, Arial;
-}
+body { margin: 0; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family: ui-sans-serif, system-ui, Segoe UI, Inter, Roboto, Arial; }
 
-/* UI primitives (plain CSS; Tailwind utilities can still be used in JSX) */
+/* small primitives (plain CSS so Tailwind config can’t break) */
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 12px;font-size:.875rem;font-weight:500;border-radius:12px;background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow-soft);transition:border-color .15s ease,filter .15s ease,transform .06s ease}
 .btn:hover{border-color:#3a5061}
 .btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--accent);color:#0b1210;border-color:var(--accent2);font-weight:700}
-.btn-ghost{background:transparent}
-
 .input,.select{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-size:.875rem;outline:none}
 .input:focus,.select:focus{border-color:#3a5061}
-
-.badge{display:inline-block;padding:4px 8px;border-radius:10px;background:var(--panel);color:var(--muted);border:1px solid var(--border);font-size:.75rem}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-soft)}
-
-.text-muted{color:var(--muted)}
-.border-border{border-color:var(--border)}
+.text-muted{color:var(--muted)} .border-border{border-color:var(--border)}
